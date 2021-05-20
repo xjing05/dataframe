@@ -28,16 +28,18 @@ function [x_coord,PLOT,ERROR]=barplot(xvar,y,varargin)
 %       'style_rainbow'      : Colorful style 
 %       'sytle_bold'         : Bold bars and error bars 
 %   Data processing options 
-%       'plotfcn'   : function over data of what should be plotted: default 'mean'
-%       'errorfcn'  : function over data to determine size of error bars: default 'stderr'
-%                     if just one error function is given, we assume
-%                     symmetric error bars
-%                     if errorfcn is a row vector of numbers (number of elements = number of categories)
-%                     varplot will use these numbers for the size of the error bars 
-%       'split',var   : Variable to split the data by. Seperate lines are
+%       'plotfcn'      : function over data of what should be plotted: default 'mean'
+%       'errorfcn'     : function over data to determine size of error bars: default 'stderr'
+%                        if just one error function is given, we assume
+%                        symmetric error bars
+%                        if errorfcn is a row vector of numbers (number of elements = number of categories)
+%                        barplot will use these numbers for the size of the error bars 
+%       'errorval_up'  : row vector of upper bound of error bars
+%       'errorval_down': ro vector of lower bound of error bars
+%       'split', var   : Variable to split the data by. Seperate lines are
 %                        drawn per value of the split-var 
-%       'subset'      : Plots only a subset of the data
-%       'leg'         : Legend, either cell with names or 'auto'
+%       'subset'       : Plots only a subset of the data
+%       'leg'          : Legend, either cell with names or 'auto'
 %       'leglocation','north' : Legend location       
 % v.1.0 Joern Diedrichsen 10/1/2005 
 % v.1.1 Support for leglocation added. Fixed bug in nameing of x-axis 
@@ -62,7 +64,8 @@ leg=[];
 leglocation='NorthWest';
 plotfcn='nanmean';
 errorfcn='stderr';
-XTickLabel={}; 
+errorval_up=[];
+errorval_down=[];
 numxvars=size(xvar,2);
 split=[];numsplitvars=0;
 goodindx=[1:size(y,1)]';
@@ -72,7 +75,8 @@ goodindx=[1:size(y,1)]';
 c=1;
 while(c<=length(varargin))
     switch(varargin{c})
-         case {'gapwidth','XTickLabel','plotfcn','errorfcn','leg','leglocation','barwidth','flip','capwidth'}
+         case {'gapwidth','XTickLabel','plotfcn','errorfcn','errorval_up','errorval_down',...
+                 'leg','leglocation','barwidth','flip','capwidth'}
             eval([varargin{c} '=varargin{c+1};']);
             c=c+2;
         case {'facecolor','edgecolor','linewidth','errorcolor','errorwidth'}
@@ -149,37 +153,31 @@ numsplitcat=length(splitcat);
 [PLOT,R]=pivottable([xvar split],[],y,plotfcn);
 if (ischar(errorfcn))
     [ERROR,R]=pivottable([xvar split],[],y,errorfcn);
-elseif (~isempty(errorfcn))
+else
     ERROR=errorfcn';
 end;
-[Xcategory,~,xcat]=unique(R,'rows');
-[XVarLabel]=unique(R(:,1:numxvars),'rows');
-
+if (~isempty(errorval_up))
+    ERROR_UP   = errorval_up;
+    ERROR_DOWN = errorval_down;
+end
+[Xcategory,dummy,xcat]=unique(R,'rows');
 if numsplitvars>0
     [Splitcategory,dummy,splitcat]=unique(R(:,numxvars+1:numxvars+numsplitvars),'rows');
 else 
     splitcat=ones(size(R,1),1);
 end;
-if (isempty(XTickLabel))    
-    glabels=makexlabels(XVarLabel,xvar_conv);
-else 
-    glabels=XTickLabel; 
-end; 
+glabels=makexlabels(Xcategory(:,1:numxvars),xvar_conv);
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Now format the x-size depending on the grouping structure: respect
 % different gapwidth for different levels 
 x_coord=1;
-x_tick =1; % Ticks for bar group labels 
 for i=2:size(R,1)
     diffxcat=find(R(i,:)~=R(i-1,:));
     x_coord(i)=x_coord(i-1)+1;
     if ~isempty(diffxcat)
         x_coord(i)=x_coord(i)+gapwidth(diffxcat(1)); 
     end;
-    if any(R(i,1:numxvars)~=R(i-1,1:numxvars));
-        x_tick(end+1)=x_coord(i); 
-    end; 
 end;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -190,6 +188,9 @@ xlims = [(xmin-0.3-barwidth/2) (xmax+0.3+barwidth/2)];
 if (exist('ERROR','var'))
     ymin = min(min(PLOT-ERROR),0);
     ymax = max(max(PLOT+ERROR),0);
+elseif (exist('ERROR_UP','var'))
+    ymin = min(min(PLOT-ERROR_DOWN),0);
+    ymax = max(max(PLOT+ERROR_UP),0);    
 else 
     ymin = min(min(PLOT),0);
     ymax = max(max(PLOT),0);
@@ -218,7 +219,7 @@ if (ylims(2)-ylims(1))<0.0001
 end;
 if ~flip
     axis([xlims ylims]);
-    set(gca,'XTick',x_tick);
+    set(gca,'XTick',x_coord);
     set(gca,'XTickLabel',glabels);
     set(gca,'YLabel',text(0,0,'Values'));
     %if (isempty(g)), set(gca,'XLabel',text(0,0,'Column Number')); end
@@ -249,11 +250,22 @@ for i=1:length(x_coord)
     end; 
    if (~flip) 
         h(i)=patch(XX,YY,fm.facecolor);
-        errorbars(x_coord(i),PLOT(i),ERROR(i),'linecolor',fm.errorcolor,'linewidth',fm.errorwidth,'cap',capwidth);
+        if (exist('ERROR_UP','var'))
+            errorbars(x_coord(i),PLOT(i),[ERROR_DOWN(i) ERROR_UP(i)],...
+                'linecolor',fm.errorcolor,'linewidth',fm.errorwidth,'cap',capwidth,'error_dir','both');
+        else
+            errorbars(x_coord(i),PLOT(i),ERROR(i),'linecolor',fm.errorcolor,'linewidth',fm.errorwidth,'cap',capwidth);
+        end
    else 
         h(i)=patch(YY,XX,fm.facecolor);
-        errorbars(PLOT(i),x_coord(i),ERROR(i),'linecolor',fm.errorcolor,'linewidth',fm.errorwidth,...
-            'cap',capwidth,'orientation','horz');
+        if (exist('ERROR_UP','var'))
+            errorbars(x_coord(i),PLOT(i),[ERROR_DOWN(i) ERROR_UP(i)],...
+                'linecolor',fm.errorcolor,'linewidth',fm.errorwidth,...
+                'cap',capwidth,'error_dir','both','orientation','horz');
+        else
+            errorbars(PLOT(i),x_coord(i),ERROR(i),'linecolor',fm.errorcolor,...
+                'linewidth',fm.errorwidth,'cap',capwidth,'orientation','horz');
+        end
    end; 
    if (isfield(F,'edgecolor'))
         set(h(i),'EdgeColor',fm.edgecolor);

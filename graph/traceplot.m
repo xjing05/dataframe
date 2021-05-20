@@ -21,6 +21,7 @@ function PLOT=traceplot(t,data,varargin);
 % v 1.1 Displaying one timeseries per category is possible now
 %       recycling of format in split categories 
 % v 1.2 cell arrays can be given for any formating option 
+% v.1.3 Added support for leglocation
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Defaults and deal with options 
 
@@ -29,6 +30,10 @@ F.linecolor={[0 0 1],[1 0 0],[0 1 0],[0 0 0],[1 1 0]};
 F.patchcolor={[0 0 1],[1 0 0],[0 1 0],[0 0 0],[1 1 0]};
 F.linestyle='-';
 F.transp=0.3;
+F.markertype={'none'};
+F.markerfill={[0 0 1],[1 0 0],[0 1 0],[0 0 0],[1 1 0]};
+F.markercolor=[0 0 0];
+F.markersize=4;
 leg={};
 plotfcn='nanmean';
 errorfcn='';
@@ -36,18 +41,19 @@ subset=[];
 split=[];
 XLim=[];
 YLim=[];
+leglocation='NorthEast';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Deal with the varargin's
 c=1;
 while(c<=length(varargin))
     switch(varargin{c})
-        case {'subset','split','leg','plotfcn','errorfcn','XLim','YLim'};
+        case {'subset','split','leg','leglocation','plotfcn','errorfcn','XLim','YLim'};
             eval([varargin{c} '=varargin{c+1};']);
             c=c+2;
         % Style tabs: single value sets it for all values, cell array puts
         % in the cat structure 
-        case {'linewidth','linecolor','patchcolor','linestyle','transp'}
+        case {'linewidth','linecolor','patchcolor','linestyle','transp','markertype','markersize','markercolor','markerfill'}
             v=varargin{c+1}; 
             eval(['F.' varargin{c} '=v;']);  
             c=c+2;
@@ -116,7 +122,7 @@ for c=1:numcats
         PLOT(c,:)=fcneval(plotfcn,(A{c,2}));
     end;
     h(c)=plot(t,PLOT(c,:));hold on;
-    set(h(c),'LineWidth',fm.linewidth,'Color',fm.linecolor,'LineStyle',fm.linestyle)
+    set(h(c),'LineWidth',fm.linewidth,'Color',fm.linecolor,'LineStyle',fm.linestyle,'Marker',fm.markertype,'MarkerSize',fm.markersize,'MarkerEdgeColor',fm.markercolor,'MarkerFaceColor',fm.markerfill);
     if (~isempty(errorfcn) & size(A{c,2},1)>1)
         ERR(c,:)=fcneval(errorfcn,A{c,2});
         p(c)=plotshade(t,PLOT(c,:),ERR(c,:),'patchcolor',fm.patchcolor,'transp',fm.transp);hold on;
@@ -135,7 +141,7 @@ end;
 % Do legend 
 if (~isempty(split))
     R=vertcat(A{:,1});
-    plotlegend(h,leg,R,split_conv);
+    plotlegend(h,leg,R,split_conv,leglocation);
 end;
 
 figure(gcf);

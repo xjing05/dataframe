@@ -17,6 +17,10 @@ function varargout=scatterplot3(x,y,z,varargin)
 %                           color corresponding to the range.
 %       'bubble',x    : Uses to x variable to determine markersize 
 %       'label',label:    Label each point with a number or string
+%       'labelcolor',x : color of text labels 
+%       'labelsize',x : size of text labels 
+%       'labelfont',x : font of labels. 
+%       'labelformat','%d' : format string of labels  
 %       'colormap', CM: sets colormap
 %       'leg',{}/'auto'  : specified legend or auto
 %       'draworig':       Draws origin into the graph
@@ -36,10 +40,13 @@ markersize=4;
 markertype= {'o','o','o','o','o','o','s','s','s','s','s','s','v','v','v','v','v','v'};
 markercolor={[0 0 0],[1 0 0],[0 0 1],[0 0 0],[1 0 0],[0 0 1],[0 0 0],[1 0 0],[0 0 1],[0 0 0],[1 0 0],[0 0 1],[0 0 0],[1 0 0],[0 0 1],[0 0 0],[1 0 0],[0 0 1]};
 markerfill={[0 0 0],[1 0 0],[0 0 1],[1 1 1],[1 1 1],[1 1 1],[0 0 0],[1 0 0],[0 0 1],[1 1 1],[1 1 1],[1 1 1],[0 0 0],[1 0 0],[0 0 1],[1 1 1],[1 1 1],[1 1 1]};
+labelcolor = [0 0 0]; 
 draworig=0;
 identity=0; 
 label=[];
 labelformat='%d';
+labelsize=10; 
+labelfont='arial'; 
 leg=[];
 CAT=[];
 leglocation='SouthEast';
@@ -51,7 +58,8 @@ bubble=[];
 bubble_minsize=3;
 bubble_maxsize=30;
 variables={'markertype','markercolor','markerfill','markersize','CAT',...
-    'subset','split','leg','leglocation','color','label',...
+    'subset','split','leg','leglocation','color',...
+    'label','labelcolor','labelsize','labelfont',...
     'colormap',...
     'bubble','bubble_minsize','bubble_maxsize'};
 flags={'draworig','printcorr','identity'};
@@ -89,6 +97,7 @@ F.markersize=markersize;
 F.markertype=markertype;
 F.markercolor=markercolor;
 F.markerfill=markerfill;
+F.labelcolor=labelcolor; 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % re-code cell array
@@ -128,19 +137,19 @@ end;
 xmin = min(x);
 xmax = max(x);
 dx = (xmax-xmin)/20;
-if (dx==0) dx=xmax/10;end;
+if (dx<eps) dx=1;end;
 xlims = [(xmin-dx) (xmax+dx)];
 
 ymin = min(y);
 ymax = max(y);
 dy = (ymax-ymin)/20;
-if (dy==0) dy=abs(ymax)/10;end;
+if (dy<eps) dy=1;end;
 ylims = [(ymin-dy) (ymax+dy)];
 
 zmin = min(z);
 zmax = max(z);
 dz = (zmax-zmin)/20;
-if (dz==0) dz=abs(zmax)/10;end;
+if (dz<eps) dz=1;end;
 zlims = [(zmin-dz) (zmax+dz)];
 
 repl_state=get(gca,'NextPlot');
@@ -192,7 +201,7 @@ for c=1:numsplitcat
     end;
 end;
 
-set(gca,'XLim',xlims,'YLim',ylim,'ZLim',zlim); 
+set(gca,'XLim',xlims,'YLim',ylims,'ZLim',zlims); 
 set(gca,'ZGrid','on','XGrid','on','YGrid','on'); 
 
 if (draworig)
@@ -215,12 +224,14 @@ if (~isempty(label))
     if (iscell(label))
         label={label{find(subset)}};
         for i=1:length(x)
-            text(x(i)+xoffset,y(i)+yoffset,z(i)+zoffset,label{i});
+            th=text(x(i)+xoffset,y(i)+yoffset,z(i)+zoffset,label{i});
+            set(th,'Color',labelcolor,'FontSize',labelsize,'FontName',labelfont); 
         end;
     else
         label=label(find(subset));
         for i=1:length(x)
-            text(x(i)+xoffset,y(i)+yoffset,z(i)+zoffset,sprintf(labelformat,label(i)));
+            th=text(x(i)+xoffset,y(i)+yoffset,z(i)+zoffset,sprintf(labelformat,label(i)));
+            set(th,'Color',labelcolor,'FontSize',labelsize,'FontName',labelfont); 
         end;
     end;
 end;

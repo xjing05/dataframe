@@ -22,7 +22,7 @@ function [N,catX]=histplot(y,varargin)
 %       'fit',{'Xcdf',[P1 P2 .... ]}: overlays distribution function to the
 %                                     data 
 %    Predetermined styles
-%       'style_bar1'          : Tranditional barplot
+%       'style_bar1'          : Overlapping histogram outlines 
 % -------------------------------------------------------------------------
 % Fixes
 % v1.1: if all data is nan for one category, it leaves box open 01/25/06
@@ -77,7 +77,7 @@ while(c<=length(varargin))
             eval([varargin{c} '=varargin{c+1};']);c=c+2;
         case {'facecolor','facealpha','linecolor','linewidth',...
                 'fillcolor','markersize','markertype',...
-                'markercolor','markerfill'};
+                'markercolor','markerfill','barwidth'};
             eval(['F.',varargin{c} '=varargin{c+1};']);c=c+2;
         case 'style_bar1'
             style='bar';
@@ -210,9 +210,9 @@ for row=1:numsplitcatSP{1}
                 switch (style)
                     case 'bar'
                         h(cat)=bar(X,N(cat,:),fm.barwidth);
-                        if versionNum<8.5 % Use the old graphics system  
-                            h(cat)=get(h(cat),'Children');
-                        end; 
+%                         if versionNum<8.5 % Use the old graphics system  
+%                             h(cat)=get(h(cat),'Children');
+%                         end; 
                         % Draw the outline
                         if (strcmp(fm.linestyle,'outline'))
                             dx=min(diff(X));
@@ -235,10 +235,10 @@ for row=1:numsplitcatSP{1}
                             fm.linestyle='none';
                         end;
                         %
-                        if (versionNum<8.5) 
+                        if (versionNum<8.4) 
                             set(h(cat),'EdgeColor',fm.linecolor,'linestyle',fm.linestyle,'FaceColor',fm.facecolor,'LineWidth',fm.linewidth,'FaceAlpha',fm.facealpha);
                         else
-                            set(h(cat),'EdgeColor',fm.linecolor,'linestyle',fm.linestyle,'FaceColor',fm.facecolor,'LineWidth',fm.linewidth);
+                            set(h(cat),'EdgeColor',fm.linecolor,'linestyle',fm.linestyle,'FaceColor','none','LineWidth',fm.linewidth);
                         end; 
                     case 'line'
                         h(cat)=plot(X,N(cat,:));
